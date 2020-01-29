@@ -2,8 +2,10 @@ const express = require('express')
 const app = express()
 const fs = require('fs')
 const multer = require('multer')
+
+const path = require('path');
 const {createWorker} = require('tesseract.js')
-const worker = createWorker()
+
 
 // Storage
 const storage = multer.diskStorage({
@@ -27,6 +29,30 @@ app.get('/', (req,res) => {
 app.post('/upload', (req,res) => {
     upload(req,res, err => {
         console.log(req.file)
+        fs.readFile(`./uploads/${req.file.originalname}`, (err, data) => {
+            if(err) return console.log("Error Occured")
+            
+            const image = data
+
+            console.log(`Recognizing ${image}`);
+
+            (async () => {
+            const worker = createWorker({
+                logger: m => console.log(m),
+                error: err => console.error(err)
+                })
+            await worker.load();
+            await worker.loadLanguage('eng');
+            await worker.initialize('eng');
+            const { data: { text } } = await worker.recognize(image);
+            console.log(text);
+            res.send(text)
+            const { data } = await worker.getPDF('Tesseract OCR Result');
+            fs.writeFileSync('tesseract-ocr-result.pdf', Buffer.from(data));
+            console.log('Generate PDF: tesseract-ocr-result.pdf');
+            await worker.terminate();
+            })();
+        })
     })
 })
 
