@@ -29,23 +29,23 @@ app.get('/', (req,res) => {
 app.post('/upload', (req,res) => {
     upload(req,res, err => {
         console.log(req.file)
-        fs.readFile(`./uploads/${req.file.originalname}`, (err, data) => {
+        const path = `./uploads/${req.file.originalname}`
+        fs.readFile(path, (err, data) => {
             if(err) return console.log("Error Occured")
             
-            const image = data
+            const image = path
 
-            console.log(`Recognizing ${image}`);
+            console.log(`Recognizing ${req.file.originalname}`);
 
             (async () => {
             const worker = createWorker({
-                logger: m => console.log(m),
                 error: err => console.error(err)
                 })
             await worker.load();
             await worker.loadLanguage('eng');
             await worker.initialize('eng');
             const { data: { text } } = await worker.recognize(image);
-            console.log(text);
+            console.log(text)
             res.send(text)
             const { data } = await worker.getPDF('Tesseract OCR Result');
             fs.writeFileSync('tesseract-ocr-result.pdf', Buffer.from(data));
