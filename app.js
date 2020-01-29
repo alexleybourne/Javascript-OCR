@@ -3,7 +3,6 @@ const app = express()
 const fs = require('fs')
 const multer = require('multer')
 
-const path = require('path');
 const {createWorker} = require('tesseract.js')
 
 
@@ -34,27 +33,37 @@ app.post('/upload', (req,res) => {
             if(err) return console.log("Error Occured")
             
             const image = path
+            console.log(`Recognizing ${req.file.originalname}`)
 
-            console.log(`Recognizing ${req.file.originalname}`);
+            // Removes original Images .png, .jpeg etc.
+            let saveName = req.file.originalname.toString()
+            saveName = (saveName.split('.')[0])
 
+            // For some reason it has to be like this or it crashes??
+            OCR()
+            
+            // The MAGIC
+            function OCR()  {
             (async () => {
             const worker = createWorker({
                 error: err => console.error(err)
                 })
-            await worker.load();
-            await worker.loadLanguage('eng');
-            await worker.initialize('eng');
-            const { data: { text } } = await worker.recognize(image);
+            await worker.load()
+            await worker.loadLanguage('eng')
+            await worker.initialize('eng')
+            const { data: { text } } = await worker.recognize(image)
             console.log(text)
             res.send(text)
-            const { data } = await worker.getPDF('Tesseract OCR Result');
-            fs.writeFileSync('tesseract-ocr-result.pdf', Buffer.from(data));
-            console.log('Generate PDF: tesseract-ocr-result.pdf');
-            await worker.terminate();
-            })();
+            const { data } = await worker.getPDF('Tesseract OCR Result')
+
+            fs.writeFileSync(`${saveName}-Converted.pdf`, Buffer.from(data))
+            console.log(`Generate PDF: ${saveName}-Converted.pdf`)
+            await worker.terminate()
+            })()}
         })
     })
 })
+
 
 
 // Start up server
